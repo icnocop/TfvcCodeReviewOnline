@@ -1,0 +1,102 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Packages the Azure DevOps extension.
+
+    An Azure DevOps extension .vsix is not a Visual Studio VSSDK VSIX: its manifest is
+    vss-extension.json, and Microsoft's tfx-cli builds the package (generating extension.vsixmanifest
+    and [Content_Types].xml inside it). So this project drives tfx rather than using the VSSDK
+    targets, and contains no compilation of its own.
+
+    The unit tests run before the package is produced and a failure stops the build, so a red test
+    run cannot yield an installable package.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <IsPackable>false</IsPackable>
+    <NoWarn>$(NoWarn);CS2008</NoWarn>
+
+    <!-- Set to false to package without running the tests, for example when iterating locally. -->
+    <RunTestsBeforePackaging Condition="'$(RunTestsBeforePackaging)' == ''">true</RunTestsBeforePackaging>
+
+    <PackageStagingDirectory>$(MSBuildThisFileDirectory)obj\package\</PackageStagingDirectory>
+    <VsixOutputDirectory>$(MSBuildThisFileDirectory)bin\$(Configuration)\</VsixOutputDirectory>
+    <WebProjectDirectory>$(RepositoryRoot)src\TfvcCodeReviewOnline.Web\</WebProjectDirectory>
+    <VssSdkDirectory>$(RepositoryRoot)node_modules\vss-web-extension-sdk\lib\</VssSdkDirectory>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Builds the TypeScript bundle before it is staged. -->
+    <ProjectReference Include="$(WebProjectDirectory)TfvcCodeReviewOnline.Web.csproj"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="vss-extension.json" />
+    <None Include="images\**\*" />
+  </ItemGroup>
+
+  <Target Name="EnsureNodeModules">
+    <Error Condition="!Exists('$(RepositoryRoot)node_modules')"
+           Text="node_modules is missing. Run 'npm ci' in the repository root before building; the package needs tfx-cli and the VSS SDK script." />
+    <Error Condition="!Exists('$(VssSdkDirectory)VSS.SDK.min.js')"
+           Text="VSS.SDK.min.js was not found at $(VssSdkDirectory). Run 'npm ci' in the repository root." />
+  </Target>
+
+  <Target Name="RunUnitTests" AfterTargets="Build" DependsOnTargets="EnsureNodeModules"
+          Condition="'$(RunTestsBeforePackaging)' == 'true'">
+    <Message Importance="high" Text="Running unit tests before packaging..." />
+    <Exec Command="npm test" WorkingDirectory="$(RepositoryRoot)" />
+  </Target>
+
+  <Target Name="StagePackageFiles" AfterTargets="Build" DependsOnTargets="RunUnitTests">
+    <ItemGroup>
+      <!--
+        Only the emitted bundle, the page, and the stylesheet are packaged. The TypeScript sources
+        and the source map stay out of the extension: they are on GitHub, and shipping them would
+        just make the package bigger.
+      -->
+      <WebAsset Include="$(WebProjectDirectory)wwwroot\index.html" />
+      <WebAsset Include="$(WebProjectDirectory)wwwroot\css\**\*.css" SubFolder="css\" />
+      <WebAsset Include="$(WebProjectDirectory)wwwroot\js\app.js" SubFolder="js\" />
+      <VssSdkScript Include="$(VssSdkDirectory)VSS.SDK.min.js" />
+      <ManifestAsset Include="vss-extension.json" />
+      <ManifestAsset Include="$(RepositoryRoot)README.md" />
+      <ManifestAsset Include="$(RepositoryRoot)LICENSE" />
+      <IconAsset Include="images\**\*" />
+    </ItemGroup>
+
+    <Error Condition="!Exists('$(WebProjectDirectory)wwwroot\js\app.js')"
+           Text="The TypeScript bundle was not produced at $(WebProjectDirectory)wwwroot\js\app.js." />
+
+    <RemoveDir Directories="$(PackageStagingDirectory)" />
+    <Copy SourceFiles="@(ManifestAsset)" DestinationFolder="$(PackageStagingDirectory)" />
+    <Copy SourceFiles="@(IconAsset)" DestinationFolder="$(PackageStagingDirectory)images\%(RecursiveDir)" />
+    <Copy SourceFiles="@(WebAsset)" DestinationFolder="$(PackageStagingDirectory)web\%(WebAsset.SubFolder)" />
+    <Copy SourceFiles="@(VssSdkScript)" DestinationFolder="$(PackageStagingDirectory)web\lib\" />
+  </Target>
+
+  <Target Name="CreateVsix" AfterTargets="Build" DependsOnTargets="StagePackageFiles"
+          Inputs="@(WebAsset);@(ManifestAsset);@(IconAsset)"
+          Outputs="$(VsixOutputDirectory)$(ExtensionPublisher).tfvc-code-review-online-$(ExtensionVersion).vsix">
+    <MakeDir Directories="$(VsixOutputDirectory)" />
+
+    <!--
+      The version is stamped explicitly through an override rather than letting tfx bump it, so the
+      package, the manifest, and the CI run number always agree.
+    -->
+    <Exec WorkingDirectory="$(RepositoryRoot)"
+          Command="npx --no-install tfx extension create --root &quot;$(PackageStagingDirectory.TrimEnd('\'))&quot; --manifest-globs vss-extension.json --output-path &quot;$(VsixOutputDirectory.TrimEnd('\'))&quot; --publisher &quot;$(ExtensionPublisher)&quot; --extension-id tfvc-code-review-online --override &quot;{\&quot;version\&quot;:\&quot;$(ExtensionVersion)\&quot;}&quot; --no-color" />
+
+    <Message Importance="high" Text="Packaged extension version $(ExtensionVersion) into $(VsixOutputDirectory)" />
+  </Target>
+
+  <Target Name="CleanPackageOutput" AfterTargets="Clean">
+    <RemoveDir Directories="$(PackageStagingDirectory);$(VsixOutputDirectory)" />
+  </Target>
+
+</Project>

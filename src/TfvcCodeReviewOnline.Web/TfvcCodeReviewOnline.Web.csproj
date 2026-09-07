@@ -1,0 +1,62 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Transpiles the extension's TypeScript to a single AMD bundle using Microsoft's TypeScript MSBuild
+    package. Every compiler setting lives in tsconfig.json so that `dotnet build`, `npx tsc`, and the
+    editor all agree.
+
+    This project contains no C# and produces no meaningful assembly; the empty netstandard2.0 output
+    is a by-product of using the .NET SDK to host the TypeScript targets, and it is not packaged.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <IsPackable>false</IsPackable>
+    <NoWarn>$(NoWarn);CS2008</NoWarn>
+
+    <!-- Fail the build on a TypeScript error rather than shipping a bundle that does not compile. -->
+    <TypeScriptCompileBlocked>false</TypeScriptCompileBlocked>
+
+    <!-- Where the packaging project picks up the browser assets. -->
+    <WebRoot>$(MSBuildThisFileDirectory)wwwroot\</WebRoot>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Kept in lockstep with the "typescript" devDependency in package.json, so `dotnet build`,
+      `npx tsc`, and the editor all use the same compiler version and cannot disagree about whether
+      the code compiles.
+    -->
+    <PackageReference Include="Microsoft.TypeScript.MSBuild" Version="5.8.3" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      tsconfig.json must be a Content item, not None. The TypeScript targets' FindConfigFiles task
+      reads @(Content) and @(TypeScriptCompile) to decide whether to compile via a config file; with
+      no config file found it falls back to compiling each .ts individually using MSBuild-derived
+      switches, which silently ignores every setting in tsconfig.json.
+    -->
+    <Content Include="tsconfig.json" CopyToOutputDirectory="Never" CopyToPublishDirectory="Never" />
+
+    <!-- The .ts files are added to TypeScriptCompile automatically by the TypeScript package. -->
+    <None Include="wwwroot\index.html" />
+    <None Include="wwwroot\css\**\*.css" />
+  </ItemGroup>
+
+  <!--
+    The bundle is generated, so a clean has to remove it. Without this, a renamed or deleted module
+    can leave stale JavaScript behind in wwwroot\js and get packaged.
+  -->
+  <Target Name="CleanGeneratedScripts" AfterTargets="Clean">
+    <ItemGroup>
+      <GeneratedScript Include="$(WebRoot)js\**\*" />
+    </ItemGroup>
+    <Delete Files="@(GeneratedScript)" />
+  </Target>
+
+</Project>

@@ -1,0 +1,1308 @@
+/*
+ * Every rule is scoped under .tfvc-code-review-online, with one deliberate exception noted below.
+ *
+ * That is deliberate and it is not negotiable: this stylesheet loads into a frame that also loads
+ * the host's own platform styles, and a bare element selector here would restyle the host's chrome.
+ * There are no `!important` declarations and no element or id selectors outside the root class for
+ * the same reason.
+ *
+ * Colors are expressed as translucent black and white over the host's own background wherever
+ * possible, so the tab follows the theme the user has chosen instead of pinning itself to the light
+ * one.
+ */
+
+/*
+ * The exception: the three ancestors of the root element.
+ *
+ * These are bare element and id selectors, which the rule above otherwise forbids. They are safe
+ * because they are this page's own elements -- the host's chrome lives in the parent document, not
+ * in this frame -- and the scroll container below cannot work without an unbroken height chain to
+ * sit in.
+ *
+ * Why the tab scrolls itself rather than growing to fit: the host renders extension pages inside a
+ * fixed-height container with `overflow: hidden`. Asking it to grow the frame does work, and is
+ * useless -- the frame grows and the container clips it, with no scrollbar anywhere, because the
+ * clipping hides the overflow from every ancestor that might otherwise have scrolled. The frame is
+ * therefore left at whatever height the host gives it, and the review scrolls within that.
+ */
+html,
+body,
+#content {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+}
+
+/*
+ * The design tokens, declared on the document rather than on the root class.
+ *
+ * They have to be: a popup menu is attached to `body`, outside the root element, because a menu
+ * nested inside the pane that scrolls gets clipped by it. A custom property declared on the root
+ * class does not reach anything outside that element, so a menu asking for `var(--tfvc-surface)`
+ * resolved it to nothing and rendered with a transparent background over the code.
+ *
+ * This is the same deliberate exception as the rule above -- these are this page's own elements, and
+ * the host's chrome lives in the parent document.
+ */
+html {
+    /*
+     * The monospace stack, used through var() everywhere code is shown.
+     *
+     * `ui-monospace` first asks the browser for the platform's own coding font, and Cascadia Mono --
+     * which ships with Windows Terminal and Visual Studio -- is markedly easier to read at small
+     * sizes than Consolas, which stays as the fallback for older machines. This is the same approach
+     * GitHub's diff view takes, and most of the readability difference is the stack rather than the
+     * size.
+     */
+    --tfvc-mono: ui-monospace, "Cascadia Mono", "Cascadia Code", SFMono-Regular, "SF Mono", Menlo,
+        Consolas, "Liberation Mono", monospace;
+
+    /* Matches the host's own interface font, falling back to the platform default. */
+    --tfvc-ui-font: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial,
+        sans-serif;
+
+    /*
+     * The page's own background and text colour, for anything that floats over the review -- the
+     * pinned toolbar, a popup menu. `Canvas` and `CanvasText` are the system colours the browser is
+     * already using for the page, so they follow a light or dark theme without this file having to
+     * know which is in force.
+     */
+    --tfvc-surface: Canvas;
+    --tfvc-on-surface: CanvasText;
+}
+
+.tfvc-code-review-online {
+    font-family: var(--tfvc-ui-font);
+    font-size: 14px;
+    line-height: 1.5;
+    padding: 12px 8px 24px;
+
+    /*
+     * A column: header, then two panes that fill what is left.
+     *
+     * The root itself does not scroll -- the review pane does -- so that the navigation tree stays
+     * put while the review moves under it.
+     */
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+/*
+ * The two panes. Deliberately no `gap`: the splitter provides the separation, and a gap either side
+ * of it would double it and leave the divider floating in the middle of a channel.
+ *
+ * `min-height: 0` is what makes the panes scroll rather than stretch. Without it a flex item refuses
+ * to shrink below its content, so both panes grow to fit the whole review and the scrollbars end up
+ * somewhere they cannot be reached.
+ */
+.tfvc-code-review-online__body {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.tfvc-code-review-online__tree {
+    display: flex;
+    flex-direction: column;
+    /* The basis is set inline as the reader drags the splitter; this is only the starting value. */
+    flex: 0 0 300px;
+    min-width: 0;
+}
+
+.tfvc-code-review-online__tree[hidden] {
+    display: none;
+}
+
+/* Stays put while the tree scrolls beneath it, so the way to close the drawer is always in reach. */
+.tfvc-code-review-online__tree-header {
+    align-items: center;
+    display: flex;
+    flex: none;
+    gap: 8px;
+    justify-content: space-between;
+    padding: 0 4px 4px 4px;
+}
+
+.tfvc-code-review-online__tree-title {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    opacity: 0.7;
+    text-transform: uppercase;
+}
+
+.tfvc-code-review-online__tree-container {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.tfvc-code-review-online__tree-search {
+    border: 1px solid rgba(128, 128, 128, 0.5);
+    box-sizing: border-box;
+    flex: none;
+    font: inherit;
+    font-size: 12px;
+    margin: 0 4px 6px;
+    padding: 4px 6px;
+    width: calc(100% - 8px);
+}
+
+.tfvc-code-review-online__tree-root {
+    flex: 1 1 auto;
+    overflow: auto;
+}
+
+/*
+ * The closed drawer: a narrow strip where the tree used to be.
+ *
+ * Putting the way back in the pane's own place, rather than among the controls at the top of the
+ * tab, is what makes it findable -- a lone icon in the title row reads as decoration.
+ */
+.tfvc-code-review-online__pane-rail {
+    align-items: flex-start;
+    background: rgba(128, 128, 128, 0.1);
+    border: 0;
+    border-right: 1px solid rgba(128, 128, 128, 0.35);
+    color: inherit;
+    cursor: pointer;
+    display: flex;
+    flex: 0 0 26px;
+    justify-content: center;
+    opacity: 0.7;
+    padding: 6px 0 0 0;
+}
+
+.tfvc-code-review-online__pane-rail:hover {
+    background: rgba(128, 128, 128, 0.22);
+    opacity: 1;
+}
+
+.tfvc-code-review-online__pane-rail[hidden] {
+    display: none;
+}
+
+/*
+ * The splitter: a wide grab area with a thin line drawn down the middle of it.
+ *
+ * An earlier version set a 7px width and then `margin: 0 -3px`, which pulled the panes back over it
+ * and left about a pixel actually grabbable -- the visible rule and the target were the same size,
+ * which is exactly what makes a splitter frustrating. The width here is real, and the rule is drawn
+ * by the pseudo-element so that widening the target does not widen the line.
+ */
+.tfvc-code-review-online__splitter {
+    background: transparent;
+    cursor: col-resize;
+    flex: 0 0 11px;
+    position: relative;
+}
+
+.tfvc-code-review-online__splitter::before {
+    background: rgba(128, 128, 128, 0.35);
+    bottom: 0;
+    content: "";
+    left: 5px;
+    position: absolute;
+    top: 0;
+    width: 1px;
+}
+
+.tfvc-code-review-online__splitter:hover::before,
+.tfvc-code-review-online__splitter:focus-visible::before {
+    background: rgba(0, 120, 212, 0.8);
+    left: 4px;
+    width: 3px;
+}
+
+.tfvc-code-review-online__splitter:focus-visible {
+    outline: none;
+}
+
+.tfvc-code-review-online__splitter[hidden] {
+    display: none;
+}
+
+/* --- side-by-side column splitter -------------------------------------------------------------- */
+
+.tfvc-code-review-online__diff-host {
+    /* Containing block for the column splitter, which is positioned over the table. */
+    position: relative;
+}
+
+.tfvc-code-review-online__column-splitter {
+    bottom: 0;
+    cursor: col-resize;
+    position: absolute;
+    top: 0;
+    width: 11px;
+    z-index: 1;
+}
+
+/*
+ * The divider itself is a border on the cells of the left column -- see `__code-left` below -- and
+ * this element is only the grab area, invisible until pointed at.
+ *
+ * Drawing it as an overlay line was the obvious approach and was wrong: the line ran the full height
+ * of the table, straight across the rows that span both columns, so a comment thread or a "show
+ * unchanged lines" strip had a rule through the middle of it. Raising those rows above it did not
+ * help either, because they paint no background of their own -- the line simply showed through. A
+ * border on the column stops where the column stops, which is what a column divider should do.
+ */
+.tfvc-code-review-online__column-splitter:hover::before,
+.tfvc-code-review-online__column-splitter:focus-visible::before {
+    background: rgba(0, 120, 212, 0.8);
+    bottom: 0;
+    content: "";
+    left: 4px;
+    position: absolute;
+    top: 0;
+    width: 3px;
+}
+
+.tfvc-code-review-online__column-splitter:focus-visible {
+    outline: none;
+}
+
+/*
+ * While a drag is in progress the cursor is kept and selection suppressed across the whole tab.
+ * Otherwise dragging past the divider starts selecting the code underneath, which then fights the
+ * select-lines-to-comment behavior in the diff.
+ */
+.tfvc-code-review-online--dragging {
+    cursor: col-resize;
+    user-select: none;
+}
+
+.tfvc-code-review-online__content {
+    flex: 1 1 auto;
+    /* Without this the code, which can be very wide, refuses to let the pane shrink. */
+    min-width: 0;
+    overflow: auto;
+    padding: 0 4px 0 8px;
+}
+
+/*
+ * Everything that is about the review as a whole, in one row above both panes.
+ *
+ * What is being reviewed, then the way through it, then how it is shown. Above the panes rather than
+ * inside the one that scrolls, so it needs no pinning and nothing passes underneath it.
+ *
+ * The heading has to be allowed to shrink -- `min-width: 0` -- or a long shelveset name pushes the
+ * controls off the edge of the tab. The controls never shrink.
+ */
+.tfvc-code-review-online__heading-row {
+    align-items: center;
+    display: flex;
+    flex: none;
+    gap: 8px;
+    padding: 0 0 10px;
+}
+
+/* Pushed to the far edge, where what acts on the review as a whole is looked for. */
+.tfvc-code-review-online__heading-actions {
+    align-items: center;
+    display: flex;
+    flex: none;
+    gap: 8px;
+    margin-left: auto;
+}
+
+/* States how a closed review ended, and why nothing offers to close it. */
+.tfvc-code-review-online__review-state {
+    background: rgba(128, 128, 128, 0.25);
+    border-radius: 10px;
+    flex: none;
+    font-size: 12px;
+    font-weight: 400;
+    padding: 1px 8px;
+    white-space: nowrap;
+}
+
+.tfvc-code-review-online__review-state[hidden] {
+    display: none;
+}
+
+/* A button that reads as a command rather than an icon, for an action worth naming in words. */
+.tfvc-code-review-online__text-button {
+    align-items: center;
+    background: transparent;
+    border: 1px solid rgba(128, 128, 128, 0.5);
+    border-radius: 3px;
+    color: inherit;
+    cursor: pointer;
+    display: inline-flex;
+    flex: none;
+    font: inherit;
+    font-size: 12px;
+    gap: 4px;
+    padding: 2px 10px;
+}
+
+.tfvc-code-review-online__text-button:hover {
+    background: rgba(128, 128, 128, 0.18);
+}
+
+.tfvc-code-review-online__text-button-caret {
+    opacity: 0.7;
+}
+
+/*
+ * The step between choosing how to close a review and closing it.
+ *
+ * Given the width of the tab rather than the width of the heading row: it holds a question, a note
+ * box, and two buttons, and a closed review cannot be reopened, so this is not the place to be terse.
+ */
+.tfvc-code-review-online__close-panel {
+    border: 1px solid rgba(210, 150, 0, 0.5);
+    border-radius: 3px;
+    flex: none;
+    margin: 0 0 10px;
+    padding: 8px 10px;
+}
+
+.tfvc-code-review-online__close-panel[hidden] {
+    display: none;
+}
+
+.tfvc-code-review-online__close-question {
+    margin: 0 0 6px;
+}
+
+/* The chevron that folds the review's details away. Sized and coloured like a file's own. */
+.tfvc-code-review-online__details-toggle {
+    background: transparent;
+    border: 0;
+    color: inherit;
+    cursor: pointer;
+    flex: none;
+    font: inherit;
+    padding: 0;
+}
+
+.tfvc-code-review-online__review-details {
+    flex: none;
+    padding: 0 0 10px;
+}
+
+.tfvc-code-review-online__review-details[hidden] {
+    display: none;
+}
+
+.tfvc-code-review-online__review-summary {
+    font-size: 13px;
+    opacity: 0.8;
+}
+
+.tfvc-code-review-online__review-heading {
+    font-size: 17px;
+    font-weight: 600;
+    margin: 0;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tfvc-code-review-online__review-heading-kind {
+    font-weight: 400;
+    opacity: 0.7;
+}
+
+.tfvc-code-review-online__review-heading-name {
+    color: inherit;
+}
+
+/* --- buttons --------------------------------------------------------------------------------- */
+
+/* Buttons that act on the same thing, kept together and set apart from whatever is next to them. */
+.tfvc-code-review-online__button-group {
+    align-items: center;
+    border: 1px solid rgba(128, 128, 128, 0.4);
+    border-radius: 3px;
+    display: flex;
+    flex: none;
+}
+
+.tfvc-code-review-online__icon-button {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    border-radius: 3px;
+    color: inherit;
+    cursor: pointer;
+    display: inline-flex;
+    flex: none;
+    justify-content: center;
+    opacity: 0.65;
+    padding: 2px;
+}
+
+.tfvc-code-review-online__icon-button:hover {
+    background: rgba(128, 128, 128, 0.25);
+    opacity: 1;
+}
+
+.tfvc-code-review-online__link-button {
+    background: transparent;
+    border: 0;
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+    font-size: 12px;
+    opacity: 0.8;
+    padding: 2px 0;
+    text-decoration: underline;
+}
+
+.tfvc-code-review-online__link-button:hover {
+    opacity: 1;
+}
+
+.tfvc-code-review-online__summary {
+    margin: 0 0 12px;
+    opacity: 0.75;
+}
+
+.tfvc-code-review-online__summary-link {
+    color: inherit;
+}
+
+.tfvc-code-review-online__heading {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 20px 0 6px;
+}
+
+.tfvc-code-review-online__subheading {
+    font-size: 12px;
+    font-weight: 600;
+    margin: 12px 0 4px;
+}
+
+.tfvc-code-review-online__section {
+    margin: 0;
+}
+
+.tfvc-code-review-online__facts {
+    display: grid;
+    grid-template-columns: minmax(120px, max-content) 1fr;
+    gap: 2px 16px;
+    margin: 0 0 8px;
+}
+
+.tfvc-code-review-online__facts dt {
+    font-weight: 600;
+    margin: 0;
+}
+
+.tfvc-code-review-online__facts dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.tfvc-code-review-online__preformatted {
+    background: rgba(128, 128, 128, 0.12);
+    border: 1px solid rgba(128, 128, 128, 0.35);
+    font-family: var(--tfvc-mono);
+    font-size: 12px;
+    margin: 0 0 8px;
+    max-height: 320px;
+    overflow: auto;
+    padding: 8px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.tfvc-code-review-online__error {
+    border: 1px solid rgba(200, 50, 50, 0.6);
+    border-left-width: 4px;
+    padding: 8px 12px;
+}
+
+.tfvc-code-review-online__warning {
+    border-left: 4px solid rgba(210, 150, 0, 0.8);
+    padding: 4px 12px;
+}
+
+.tfvc-code-review-online__note {
+    margin: 4px 0 8px;
+    opacity: 0.75;
+}
+
+.tfvc-code-review-online__empty {
+    opacity: 0.8;
+}
+
+.tfvc-code-review-online__button {
+    font: inherit;
+    margin: 4px 0 0;
+    padding: 4px 12px;
+}
+
+/* --- files ------------------------------------------------------------------------------------ */
+
+/*
+ * Each file is a card, as in the built-in shelveset view: a plain panel separated from its
+ * neighbours by space rather than by a heavy rule.
+ */
+.tfvc-code-review-online__file {
+    border: 1px solid rgba(128, 128, 128, 0.25);
+    border-radius: 2px;
+    margin: 0 0 12px;
+}
+
+/*
+ * The header is a container, not a button.
+ *
+ * The file-level comment button has to sit at the leading edge, and a button cannot be nested inside
+ * another button -- so the toggle is its own button beside it, and clicking the comment icon never
+ * also collapses the file.
+ */
+.tfvc-code-review-online__file-header {
+    align-items: flex-start;
+    display: flex;
+    gap: 4px;
+    padding: 10px 10px 8px;
+}
+
+.tfvc-code-review-online__file-toggle {
+    align-items: flex-start;
+    background: transparent;
+    border: 0;
+    color: inherit;
+    cursor: pointer;
+    display: flex;
+    flex: 1 1 auto;
+    font: inherit;
+    gap: 8px;
+    min-width: 0;
+    padding: 0;
+    text-align: left;
+}
+
+.tfvc-code-review-online__file-glyph {
+    flex: none;
+    line-height: 1.5;
+    opacity: 0.7;
+    width: 1em;
+}
+
+/*
+ * The name, its counts, and whatever else the header says about the file.
+ *
+ * The full path is a tooltip on the header rather than a second line of its own: it is what tells two
+ * files of the same name apart, but it is needed once in a while and it was costing a line of height
+ * on every file in the review.
+ */
+.tfvc-code-review-online__file-labels {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+}
+
+.tfvc-code-review-online__file-name-row {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.tfvc-code-review-online__file-name {
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.tfvc-code-review-online__file-toggle:hover .tfvc-code-review-online__file-name {
+    text-decoration: underline;
+}
+
+.tfvc-code-review-online__file-counts {
+    display: flex;
+    font-size: 12px;
+    font-weight: 600;
+    gap: 6px;
+}
+
+.tfvc-code-review-online__file-count-added {
+    color: rgb(16, 124, 16);
+}
+
+.tfvc-code-review-online__file-count-removed {
+    color: rgb(168, 34, 42);
+}
+
+.tfvc-code-review-online__file-change {
+    flex: none;
+    font-size: 12px;
+    opacity: 0.75;
+    text-transform: uppercase;
+}
+
+.tfvc-code-review-online__file-badge {
+    background: rgba(128, 128, 128, 0.25);
+    border-radius: 10px;
+    flex: none;
+    font-size: 12px;
+    padding: 1px 8px;
+    white-space: nowrap;
+}
+
+.tfvc-code-review-online__file-badge--unresolved {
+    background: rgba(210, 150, 0, 0.35);
+}
+
+.tfvc-code-review-online__file-body {
+    padding: 8px 10px;
+}
+
+.tfvc-code-review-online__file-body[hidden] {
+    display: none;
+}
+
+/* --- diff ------------------------------------------------------------------------------------- */
+
+.tfvc-code-review-online__diff {
+    border-collapse: collapse;
+    font-family: var(--tfvc-mono);
+    /* Matched to the built-in shelveset view: 12px over a 16px line. */
+    font-size: 12px;
+    line-height: 16px;
+    table-layout: fixed;
+    width: 100%;
+}
+
+/* Column widths are set by the table's colgroup, not here: see renderDiffColumns in reviewView.ts. */
+
+/*
+ * The leading column, where the "comment on these lines" button appears.
+ *
+ * It is always present and usually empty. Reserving the space means showing the button does not
+ * shift the code sideways, which would move the very text the reader just selected.
+ */
+.tfvc-code-review-online__action {
+    padding: 0;
+    /* Containing block for the button below, which is positioned out of flow. */
+    position: relative;
+    text-align: center;
+    vertical-align: top;
+}
+
+/*
+ * The comment button is taken out of the flow.
+ *
+ * In flow it is a little taller than a line of code, so the row grows to fit it -- and because the
+ * code cell is top-aligned, that surplus shows up as blank space under the very line the reader just
+ * selected. Positioning it absolutely means showing or hiding the button cannot move anything.
+ */
+.tfvc-code-review-online__action .tfvc-code-review-online__icon-button {
+    left: 0;
+    line-height: 0;
+    padding: 1px;
+    position: absolute;
+    top: 0;
+}
+
+.tfvc-code-review-online__gutter {
+    color: inherit;
+    opacity: 0.55;
+    padding: 0 6px;
+    position: relative;
+    text-align: right;
+    user-select: none;
+    vertical-align: top;
+    white-space: nowrap;
+}
+
+/*
+ * The comment button, over the line number of the side being pointed at.
+ *
+ * Absolutely positioned so that showing it neither widens the gutter nor shifts the code, and over
+ * the number rather than beside it because the gutter is only wide enough for one of them.
+ */
+.tfvc-code-review-online__gutter .tfvc-code-review-online__icon-button {
+    background: rgba(128, 128, 128, 0.2);
+    border-radius: 2px;
+    left: 1px;
+    line-height: 0;
+    padding: 1px;
+    position: absolute;
+    top: 0;
+}
+
+.tfvc-code-review-online__marker {
+    opacity: 0.7;
+    padding: 0 2px;
+    text-align: center;
+    user-select: none;
+    vertical-align: top;
+}
+
+.tfvc-code-review-online__code {
+    overflow-wrap: anywhere;
+    padding: 0 6px;
+    vertical-align: top;
+    /* Indentation carries meaning in code, and wrapping keeps a long line reachable without a
+       horizontal scrollbar for the whole table. */
+    white-space: pre-wrap;
+}
+
+/*
+ * Word wrap turned off: lines keep their shape and the diff scrolls sideways instead.
+ *
+ * `table-layout: fixed` will not let a table exceed its container, so the table has to be released
+ * to size itself to its content before a horizontal scrollbar means anything.
+ */
+.tfvc-code-review-online__diff-host--nowrap .tfvc-code-review-online__code {
+    overflow-wrap: normal;
+    white-space: pre;
+}
+
+/*
+ * The left column clips rather than overflowing.
+ *
+ * A table cell does not clip by default, so an unwrapped line longer than its column paints straight
+ * over the column beside it and the two versions become unreadable together. Only the left column
+ * needs this: the right one is what the table is sized around, so it has room by construction, and
+ * anything past the left column's edge is reached by widening it with the splitter.
+ */
+.tfvc-code-review-online__diff-host--nowrap .tfvc-code-review-online__code-left {
+    overflow: hidden;
+}
+
+/*
+ * Each unwrapped file scrolls sideways on its own.
+ *
+ * Letting the wide tables overflow into the pane and scrolling that instead was tried, and it pulls
+ * the files out of line with each other: every file is a different width, so scrolling the pane
+ * offsets each one by a different amount and their gutters no longer share an edge. Scrolling each
+ * file within its own box keeps every file where it belongs, and the pane never scrolls sideways at
+ * all.
+ */
+.tfvc-code-review-online__diff-host--scrollx {
+    overflow-x: auto;
+}
+
+
+/* --- the two scrollbars of an unwrapped side-by-side diff --------------------------------------- */
+
+/*
+ * Each version's text is shifted by a custom property that its own scrollbar writes. One property
+ * write moves a whole column, however many rows it has, which is what makes this affordable on a
+ * file of several thousand lines.
+ */
+.tfvc-code-review-online__diff-host--nowrap .tfvc-code-review-online__diff--sideBySide
+    .tfvc-code-review-online__code {
+    overflow: hidden;
+}
+
+.tfvc-code-review-online__diff-host--nowrap .tfvc-code-review-online__diff--sideBySide
+    .tfvc-code-review-online__code-text {
+    display: inline-block;
+}
+
+.tfvc-code-review-online__diff-host--nowrap .tfvc-code-review-online__diff--sideBySide
+    .tfvc-code-review-online__code-left .tfvc-code-review-online__code-text {
+    transform: translateX(var(--tfvc-left-scroll, 0px));
+}
+
+.tfvc-code-review-online__diff-host--nowrap .tfvc-code-review-online__diff--sideBySide
+    .tfvc-code-review-online__code-right .tfvc-code-review-online__code-text {
+    transform: translateX(var(--tfvc-right-scroll, 0px));
+}
+
+/*
+ * Stuck to the bottom of the pane while the file is in view.
+ *
+ * A scrollbar at the true bottom of a long file is somewhere the reader cannot reach while reading
+ * the middle of it, which was the objection to per-file scrolling in the first place. Sticky puts it
+ * within reach the whole time the file is on screen.
+ */
+.tfvc-code-review-online__scrollbars {
+    bottom: 0;
+    display: flex;
+    position: sticky;
+    z-index: 2;
+}
+
+/*
+ * The height is what makes this work at all.
+ *
+ * A box with `overflow-x: auto` whose only content is a one-pixel spacer collapses to almost no
+ * height, and the browser has nowhere to draw the scrollbar -- so nothing appeared, which is exactly
+ * the symptom this was meant to cure. Reserving a scrollbar's worth of height gives it somewhere to
+ * go.
+ */
+.tfvc-code-review-online__scrollbar {
+    height: 14px;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+/*
+ * Widths mirror the table's colgroup, so each bar sits under the column it drives: a line-number
+ * gutter and a change marker precede each code column.
+ */
+.tfvc-code-review-online__scrollbar-gutter {
+    flex: 0 0 4.8em;
+}
+
+/* The basis is set from the splitter's ratio; this is only the starting value. */
+.tfvc-code-review-online__scrollbar--left {
+    flex: 0 0 50%;
+}
+
+.tfvc-code-review-online__scrollbar--right {
+    flex: 1 1 auto;
+}
+
+.tfvc-code-review-online__scrollbar-content {
+    height: 1px;
+}
+
+
+/*
+ * With wrapping off the table stays `table-layout: fixed` and is given an explicit width, in `ch`,
+ * wide enough for its longest lines -- see renderDiff.
+ *
+ * An earlier version switched to `table-layout: auto` here, which looked reasonable and quietly broke
+ * the column splitter: under auto layout the colgroup's percentage widths are only a suggestion, so
+ * the ratio the splitter sets has no effect and the divider drifts away from a boundary it is no
+ * longer deciding. Keeping the layout fixed and widening the table instead means the columns still
+ * divide by the ratio, and the overflow is what scrolls.
+ */
+.tfvc-code-review-online__diff-host--nowrap .tfvc-code-review-online__diff {
+    min-width: 100%;
+}
+
+/* Gives an empty line the same height as any other, without putting a character into the DOM that
+   would then show up when the rendered text is read back. */
+.tfvc-code-review-online__code::after {
+    content: "\200b";
+}
+
+/*
+ * The tint covers the marker and the code but never the line numbers.
+ *
+ * That is how the built-in shelveset view draws it, and it is the better choice regardless: the
+ * numbers stay legible, and the eye reads a continuous band of changed text rather than a striped
+ * row. Applying it per cell also means side by side needs no special case -- only the version that
+ * actually changed is coloured.
+ */
+.tfvc-code-review-online__code--added,
+.tfvc-code-review-online__marker--added {
+    background: rgba(46, 160, 67, 0.13);
+}
+
+.tfvc-code-review-online__code--removed,
+.tfvc-code-review-online__marker--removed {
+    background: rgba(207, 34, 46, 0.11);
+}
+
+/*
+ * A side with no counterpart in this row.
+ *
+ * Hatched rather than a flat tint, which is how the built-in view draws it -- and the distinction is
+ * worth keeping: a flat grey reads as "an unchanged line", while the hatching reads as "no line
+ * here", which is what it means.
+ */
+.tfvc-code-review-online__code--absent {
+    background: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 4px,
+        rgba(128, 128, 128, 0.13) 4px,
+        rgba(128, 128, 128, 0.13) 8px);
+}
+
+.tfvc-code-review-online__diff--sideBySide .tfvc-code-review-online__code {
+    /* Two code columns share the width, so each needs its own wrapping. */
+    width: 50%;
+}
+
+/*
+ * Full-width rows sit above the column splitter's grab area, so it cannot swallow a click meant for
+ * an expander or a Reply link crossing underneath it.
+ */
+.tfvc-code-review-online__collapsed-row td,
+.tfvc-code-review-online__thread-row td {
+    position: relative;
+    z-index: 2;
+}
+
+/* The divider between the two versions, drawn by the column rather than over it. */
+.tfvc-code-review-online__diff--sideBySide .tfvc-code-review-online__code-left {
+    border-right: 1px solid rgba(128, 128, 128, 0.35);
+}
+
+.tfvc-code-review-online__collapsed-row td {
+    padding: 2px 6px;
+}
+
+/*
+ * A quiet strip rather than a button.
+ *
+ * The built-in view marks a hidden run with a small ellipsis. This keeps the count, which is worth
+ * more than the resemblance, but drops the button chrome so a file with many hidden runs does not
+ * read as a stack of controls with code between them.
+ */
+.tfvc-code-review-online__expander {
+    background: transparent;
+    border: 0;
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+    font-size: 12px;
+    opacity: 0.55;
+    padding: 1px 8px;
+    text-align: center;
+    width: 100%;
+}
+
+.tfvc-code-review-online__expander:hover {
+    background: rgba(128, 128, 128, 0.15);
+    opacity: 1;
+}
+
+/* --- threads ---------------------------------------------------------------------------------- */
+
+.tfvc-code-review-online__thread-row td {
+    padding: 4px 0;
+}
+
+.tfvc-code-review-online__thread {
+    background: rgba(128, 128, 128, 0.1);
+    border-left: 3px solid rgba(0, 120, 212, 0.7);
+    margin: 6px 0;
+    padding: 6px 10px;
+}
+
+.tfvc-code-review-online__thread--resolved {
+    border-left-color: rgba(70, 180, 80, 0.7);
+    opacity: 0.75;
+}
+
+.tfvc-code-review-online__thread-header {
+    display: flex;
+    gap: 10px;
+    font-size: 12px;
+    margin-bottom: 4px;
+    opacity: 0.75;
+}
+
+.tfvc-code-review-online__thread-status {
+    text-transform: uppercase;
+}
+
+.tfvc-code-review-online__comments {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.tfvc-code-review-online__comment {
+    margin: 0 0 8px;
+}
+
+.tfvc-code-review-online__comment:last-child {
+    margin-bottom: 0;
+}
+
+.tfvc-code-review-online__comment--reply {
+    border-left: 1px solid rgba(128, 128, 128, 0.4);
+    padding-left: 8px;
+}
+
+.tfvc-code-review-online__comment-header {
+    align-items: center;
+    display: flex;
+    gap: 6px;
+    margin-bottom: 2px;
+}
+
+.tfvc-code-review-online__avatar {
+    border-radius: 50%;
+    flex: none;
+    height: 20px;
+    width: 20px;
+}
+
+.tfvc-code-review-online__avatar--initials {
+    align-items: center;
+    background: rgba(128, 128, 128, 0.35);
+    display: inline-flex;
+    font-size: 10px;
+    justify-content: center;
+    line-height: 1;
+}
+
+.tfvc-code-review-online__comment-author {
+    font-weight: 600;
+}
+
+.tfvc-code-review-online__comment-date {
+    font-size: 12px;
+    opacity: 0.65;
+}
+
+.tfvc-code-review-online__comment-content {
+    /* Comment text arrives with CRLF line breaks that carry meaning. */
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+/* --- navigation tree -------------------------------------------------------------------------- */
+
+.tfvc-code-review-online__tree-root,
+.tfvc-code-review-online__tree-group {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.tfvc-code-review-online__tree-group[hidden] {
+    display: none;
+}
+
+/*
+ * One row of the tree: the name, and the actions that belong to it.
+ *
+ * A row is a button, and a button cannot contain another button -- so the two sit side by side in a
+ * line, and the line is what carries the hover and selection highlight so it spans the whole width
+ * rather than stopping short of the actions.
+ */
+.tfvc-code-review-online__tree-line {
+    align-items: center;
+    display: flex;
+    min-width: 0;
+}
+
+.tfvc-code-review-online__tree-line:hover {
+    background: rgba(128, 128, 128, 0.18);
+}
+
+.tfvc-code-review-online__tree-line--selected {
+    background: rgba(128, 128, 128, 0.3);
+}
+
+/*
+ * Shown on the row under the pointer, as in the built-in view's tree.
+ *
+ * Always present would put a column of ellipses down a tree whose job is to be scanned. Kept visible
+ * while its own menu is open, so the button does not vanish out from under the menu it opened.
+ */
+.tfvc-code-review-online__tree-actions {
+    margin-right: 2px;
+    opacity: 0;
+}
+
+.tfvc-code-review-online__tree-line:hover .tfvc-code-review-online__tree-actions,
+.tfvc-code-review-online__tree-line:focus-within .tfvc-code-review-online__tree-actions,
+.tfvc-code-review-online__tree-actions[aria-expanded="true"] {
+    opacity: 0.7;
+}
+
+.tfvc-code-review-online__tree-actions:hover {
+    opacity: 1;
+}
+
+.tfvc-code-review-online__tree-row {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    color: inherit;
+    cursor: pointer;
+    display: flex;
+    font: inherit;
+    /* A step below the body text, not two: the tree is secondary, but it still has to be read. */
+    font-size: 13px;
+    gap: 6px;
+    min-height: 26px;
+    padding: 2px 4px;
+    text-align: left;
+    width: 100%;
+}
+
+/* The highlight belongs to the line, above, so that it reaches behind the row's actions too. */
+.tfvc-code-review-online__tree-row--selected {
+    font-weight: 600;
+}
+
+.tfvc-code-review-online__tree-glyph {
+    flex: none;
+    opacity: 0.7;
+    width: 0.9em;
+}
+
+.tfvc-code-review-online__tree-icon {
+    flex: none;
+    opacity: 0.7;
+}
+
+.tfvc-code-review-online__tree-name {
+    flex: 1 1 auto;
+    /* Long names are truncated rather than wrapped, so one row stays one line. */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tfvc-code-review-online__tree-row--folder .tfvc-code-review-online__tree-name {
+    opacity: 0.85;
+}
+
+/*
+ * File names use the interface font, not the code font.
+ *
+ * A monospace name is wider for the same number of characters, which in a narrow pane means more of
+ * it is lost to the ellipsis -- and a file name is a label here, not code being read. This is what
+ * GitHub's own file tree does.
+ */
+.tfvc-code-review-online__tree-row--file .tfvc-code-review-online__tree-name {
+    font-family: inherit;
+}
+
+/*
+ * A file the review deletes.
+ *
+ * Struck through rather than dimmed: dimming reads as "less important", and a deletion is often the
+ * most important thing in a review. Drawn on the name alone so the icon and the comment count stay
+ * legible, which is how the built-in view draws it.
+ */
+.tfvc-code-review-online__tree-name--deleted {
+    text-decoration: line-through;
+}
+
+.tfvc-code-review-online__tree-badge {
+    background: rgba(128, 128, 128, 0.25);
+    border-radius: 9px;
+    flex: none;
+    font-size: 12px;
+    padding: 0 6px;
+}
+
+/* Briefly marks the file the tree just jumped to, so the eye lands in the right place. */
+.tfvc-code-review-online__file--targeted {
+    outline: 2px solid rgba(0, 120, 212, 0.7);
+}
+
+/*
+ * The same, for the difference the previous/next buttons just moved to.
+ *
+ * Rules above and below rather than a background: the row already carries the added or removed tint,
+ * and covering that would hide the one thing that says which kind of change was jumped to. Drawn on
+ * the cells because a collapsed-border table gives a row itself no border to draw.
+ */
+.tfvc-code-review-online__row--targeted td {
+    border-bottom: 1px solid rgba(0, 120, 212, 0.7);
+    border-top: 1px solid rgba(0, 120, 212, 0.7);
+}
+
+/* --- writing --------------------------------------------------------------------------------- */
+
+.tfvc-code-review-online__reply-host {
+    margin-top: 6px;
+}
+
+.tfvc-code-review-online__comment-form {
+    margin: 6px 0;
+}
+
+.tfvc-code-review-online__comment-input {
+    box-sizing: border-box;
+    display: block;
+    font: inherit;
+    padding: 6px 8px;
+    resize: vertical;
+    width: 100%;
+}
+
+.tfvc-code-review-online__comment-form-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.tfvc-code-review-online__comment-form-error {
+    border-left: 4px solid rgba(200, 50, 50, 0.7);
+    margin: 0 0 6px;
+    padding: 4px 10px;
+}
+
+.tfvc-code-review-online__file-threads:empty {
+    display: none;
+}
+
+/* --- token prompt ----------------------------------------------------------------------------- */
+
+.tfvc-code-review-online__input {
+    font: inherit;
+    margin: 4px 8px 0 0;
+    padding: 4px 8px;
+    width: 24em;
+}
+
+/* --- popup menu --------------------------------------------------------------------------------- */
+
+/*
+ * Positioned in JavaScript against the button that opened it, so the only geometry here is its own.
+ *
+ * It sits on `body`, outside the root element, so it inherits nothing from the tab -- colour and font
+ * are stated here rather than left to `inherit`. Opaque, because it floats over code.
+ */
+.tfvc-code-review-online__menu {
+    background: var(--tfvc-surface);
+    border: 1px solid rgba(128, 128, 128, 0.4);
+    border-radius: 2px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+    color: var(--tfvc-on-surface);
+    font-family: var(--tfvc-ui-font);
+    min-width: 200px;
+    padding: 4px 0;
+    position: fixed;
+    z-index: 20;
+}
+
+.tfvc-code-review-online__menu-item {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    color: inherit;
+    cursor: pointer;
+    display: flex;
+    font: inherit;
+    font-size: 13px;
+    gap: 8px;
+    padding: 5px 12px 5px 8px;
+    text-align: left;
+    white-space: nowrap;
+    width: 100%;
+}
+
+.tfvc-code-review-online__menu-item:hover {
+    background: rgba(128, 128, 128, 0.18);
+}
+
+/* Reserved whether ticked or not, so the labels line up in a column. */
+.tfvc-code-review-online__menu-check {
+    flex: none;
+    text-align: center;
+    width: 1em;
+}
+
+.tfvc-code-review-online__menu-separator {
+    border-top: 1px solid rgba(128, 128, 128, 0.3);
+    margin: 4px 0;
+}
+
+/* Sits after the link text, on the same baseline, without pushing the text around. */
+.tfvc-code-review-online__external-icon {
+    margin-left: 4px;
+    opacity: 0.7;
+    vertical-align: -1px;
+}

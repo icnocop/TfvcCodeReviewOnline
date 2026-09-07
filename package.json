@@ -1,0 +1,27 @@
+{
+    "name": "tfvc-code-review-online",
+    "version": "0.0.0",
+    "private": true,
+    "description": "Azure DevOps Server extension that shows TFVC code review comments and replies in the web UI.",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/icnocop/TfvcCodeReviewOnline.git"
+    },
+    "scripts": {
+        "typecheck": "tsc --noEmit --project tsconfig.json",
+        "test": "vitest run --root tests/TfvcCodeReviewOnline.Tests",
+        "test:watch": "vitest --root tests/TfvcCodeReviewOnline.Tests"
+    },
+    "devDependencies": {
+        "@types/node": "^22.20.1",
+        "jsdom": "^25.0.1",
+        "tfx-cli": "^0.24.0",
+        "typescript": "~5.8.3",
+        "vitest": "^3.2.4",
+        "vss-web-extension-sdk": "^5.141.0"
+    },
+    "engines": {
+        "node": ">=20.11.0"
+    }
+}

@@ -1,0 +1,74 @@
+{
+    "manifestVersion": 1,
+    "id": "tfvc-code-review-online",
+    "publisher": "icnocop",
+    "version": "0.0.0",
+    "name": "TFVC Code Review Online",
+    "description": "Read TFVC code review comments and replies in the Azure DevOps web UI, anchored to the code they refer to, instead of only in Visual Studio.",
+    "public": false,
+    "categories": [
+        "Azure Boards"
+    ],
+    "tags": [
+        "TFVC",
+        "code review",
+        "shelveset",
+        "work item"
+    ],
+    "targets": [
+        {
+            "id": "Microsoft.VisualStudio.Services"
+        }
+    ],
+    "icons": {
+        "default": "images/icon.png"
+    },
+    "content": {
+        "details": {
+            "path": "README.md"
+        },
+        "license": {
+            "path": "LICENSE"
+        }
+    },
+    "links": {
+        "repository": {
+            "uri": "https://github.com/icnocop/TfvcCodeReviewOnline"
+        },
+        "issues": {
+            "uri": "https://github.com/icnocop/TfvcCodeReviewOnline/issues"
+        }
+    },
+    "repository": {
+        "type": "git",
+        "uri": "https://github.com/icnocop/TfvcCodeReviewOnline"
+    },
+    "scopes": [
+        "vso.code",
+        "vso.work"
+    ],
+    "contributions": [
+        {
+            "id": "code-review-comments",
+            "type": "ms.vss-work-web.work-item-form-page",
+            "description": "Adds a tab to the work item form that shows the TFVC code review discussion threads.",
+            "targets": [
+                "ms.vss-work-web.work-item-form"
+            ],
+            "properties": {
+                "name": "Comments",
+                "uri": "web/index.html"
+            }
+        }
+    ],
+    "files": [
+        {
+            "path": "web",
+            "addressable": true
+        },
+        {
+            "path": "images",
+            "addressable": true
+        }
+    ]
+}

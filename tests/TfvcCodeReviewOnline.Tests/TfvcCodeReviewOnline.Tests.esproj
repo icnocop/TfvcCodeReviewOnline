@@ -1,0 +1,64 @@
+<Project Sdk="Microsoft.VisualStudio.JavaScript.SDK/1.0.6578810">
+
+  <!--
+    Surfaces the Vitest tests in Visual Studio's Test Explorer.
+
+    Visual Studio ships a first-party Vitest adapter (Common7\IDE\Extensions\Microsoft\JavaScript\
+    TestFrameworks\Vitest), so no Visual Studio extension and no test adapter NuGet package are
+    needed.
+
+    This must be an .esproj rather than a .csproj. Microsoft documents JavaScriptTestFramework for
+    both project types, but Vitest is only listed for .esproj: the ASP.NET Core (.csproj) walkthrough
+    offers Jest, Mocha, Tape, and Jasmine only. Discovery against a .csproj was confirmed not to
+    work here.
+
+    The project builds nothing. It exists to declare the two test properties below and to give the
+    test files a home in Solution Explorer.
+  -->
+
+  <PropertyGroup>
+    <!--
+      Read by the Visual Studio JavaScript test adapter. JavaScriptTestRoot is where Test Explorer
+      looks for test files; the trailing separator is required.
+
+      The adapter runs Vitest with its root set to this project's folder, which is why
+      vitest.config.ts sits here rather than at the repository root. A config anywhere else is never
+      read, and the tests would then run under Vitest's default `node` environment and fail on every
+      DOM assertion.
+    -->
+    <JavaScriptTestRoot>unit\</JavaScriptTestRoot>
+    <JavaScriptTestFramework>Vitest</JavaScriptTestFramework>
+
+    <!--
+      There is nothing to install or build here. Dependencies are installed once at the repository
+      root by `npm ci`, and Node's module resolution walks up from this folder to find them, so the
+      SDK's own npm and build steps would only duplicate work and slow the solution build down.
+    -->
+    <ShouldRunNpmInstall>false</ShouldRunNpmInstall>
+    <ShouldRunBuildScript>false</ShouldRunBuildScript>
+    <BuildCommand></BuildCommand>
+    <ProductionBuildCommand></ProductionBuildCommand>
+    <StartupCommand></StartupCommand>
+
+    <!--
+      There are no NuGet packages here, and nothing should try to resolve any.
+
+      The JavaScript SDK declares this project as .NETCoreApp,Version=v6.0 even though it contains no
+      .NET code. Visual Studio's legacy NuGet targets then run ResolveNuGetPackageAssets, whose
+      condition is `'$(ResolveNuGetPackages)' == 'true' and exists('$(ProjectLockFile)')`. If any
+      restore ever leaves a project.assets.json in obj\ that does not target .NETCoreApp 6.0 (a
+      stale one from a different project in the same folder, for example), the build fails with:
+
+          error : Your project does not reference ".NETCoreApp,Version=v6.0" framework.
+                  Add a reference to ".NETCoreApp,Version=v6.0" in the "TargetFrameworks" property
+                  of your project file and then re-run NuGet restore.
+
+      Turning the resolver off makes that condition unsatisfiable, so a stray assets file can no
+      longer break the build. Note that setting RestoreProjectStyle to PackageReference is *not* the
+      fix: it makes restore emit an assets file targeting `net6.0-none`, which fails NU1012 and then
+      trips this same error.
+    -->
+    <ResolveNuGetPackages>false</ResolveNuGetPackages>
+  </PropertyGroup>
+
+</Project>

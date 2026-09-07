@@ -1,0 +1,23 @@
+<Project>
+
+  <PropertyGroup>
+    <RepositoryRoot>$(MSBuildThisFileDirectory)</RepositoryRoot>
+
+    <!--
+      Set by the CI workflow's version step. The default keeps a local build working and is never
+      published: an Azure DevOps extension version must be exactly three SemVer parts, so the
+      four-part assembly-style version used elsewhere is not valid here.
+    -->
+    <ExtensionVersion Condition="'$(ExtensionVersion)' == ''">0.0.0</ExtensionVersion>
+
+    <!--
+      Publisher that owns the extension in the Marketplace. Overridden on the command line when
+      publishing under a different account.
+    -->
+    <ExtensionPublisher Condition="'$(ExtensionPublisher)' == ''">icnocop</ExtensionPublisher>
+
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsNotAsErrors></WarningsNotAsErrors>
+  </PropertyGroup>
+
+</Project>

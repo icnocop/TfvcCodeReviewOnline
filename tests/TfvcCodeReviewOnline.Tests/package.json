@@ -1,0 +1,9 @@
+{
+    "name": "tfvc-code-review-online-tests",
+    "version": "0.0.0",
+    "private": true,
+    "description": "Test project marker for Visual Studio's JavaScript project system. Dependencies are installed once at the repository root.",
+    "scripts": {
+        "test": "vitest run"
+    }
+}

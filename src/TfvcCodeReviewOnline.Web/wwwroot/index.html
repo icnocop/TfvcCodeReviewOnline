@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>TFVC code review comments</title>
+    <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+    <div id="content"></div>
+
+    <script src="lib/VSS.SDK.min.js"></script>
+    <script>
+        (function () {
+            'use strict';
+
+            // Renders a failure in the page and, importantly, still tells the host the load
+            // finished. With explicitNotifyLoaded the host waits for that call, and if it never
+            // arrives the user is left watching a spinner until it gives up with
+            // "... is taking longer than expected to load", which says nothing about what went wrong.
+            function fail(message, detail) {
+                try {
+                    var host = document.getElementById('content');
+                    if (host) {
+                        host.textContent = '';
+                        var root = document.createElement('div');
+                        root.className = 'tfvc-code-review-online';
+                        var panel = document.createElement('div');
+                        panel.className = 'tfvc-code-review-online__error';
+                        var summary = document.createElement('p');
+                        summary.textContent = message;
+                        panel.appendChild(summary);
+                        if (detail) {
+                            var pre = document.createElement('pre');
+                            pre.className = 'tfvc-code-review-online__preformatted';
+                            pre.textContent = detail;
+                            panel.appendChild(pre);
+                        }
+                        root.appendChild(panel);
+                        host.appendChild(root);
+                    }
+                } catch (ignored) {
+                    // Nothing further to try; the notify below still matters.
+                }
+
+                if (window.VSS && VSS.notifyLoadSucceeded) {
+                    VSS.notifyLoadSucceeded();
+                }
+            }
+
+            VSS.init({
+                usePlatformScripts: true,
+                usePlatformStyles: true,
+                explicitNotifyLoaded: true,
+                applyTheme: true
+            });
+
+            VSS.ready(function () {
+                // The bundle is injected here rather than with a static <script> tag in the markup.
+                // It is a set of *named* AMD modules, and `define` only exists once the platform's
+                // AMD loader has been set up, which happens during VSS.init/ready. Loading it any
+                // earlier throws "define is not defined", nothing registers, and the subsequent
+                // VSS.require falls back to fetching the module by URL -- which 404s, because the
+                // loader resolves module ids against the extension root rather than this folder.
+                var script = document.createElement('script');
+                script.src = 'js/app.js';
+
+                script.onload = function () {
+                    try {
+                        // Resolves from the modules just registered; no network request is made.
+                        VSS.require(['bootstrap'], function (bootstrap) {
+                            bootstrap.run();
+                        });
+                    } catch (error) {
+                        fail('The code review comments tab could not start.', String(error));
+                    }
+                };
+
+                script.onerror = function () {
+                    fail('The code review comments tab could not load its scripts.', script.src);
+                };
+
+                document.head.appendChild(script);
+            });
+        })();
+    </script>
+</body>
+</html>

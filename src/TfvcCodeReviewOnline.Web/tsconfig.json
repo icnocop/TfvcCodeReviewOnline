@@ -1,0 +1,34 @@
+{
+    "compilerOptions": {
+        "target": "ES2018",
+        "lib": [ "ES2018", "DOM", "DOM.Iterable" ],
+
+        // The classic Azure DevOps extension host ships an AMD loader (VSS.require) and resolves
+        // platform modules such as "TFS/VersionControl/TfvcRestClient" through it. Emitting one
+        // named-AMD bundle lets the platform loader wire our modules and the platform's together
+        // with no bundler in the build.
+        "module": "AMD",
+        "outFile": "wwwroot/js/app.js",
+
+        // Pinned so the emitted AMD module names stay relative to ts/ ("bootstrap",
+        // "clients/discussionClient") no matter which files are in the compilation.
+        "rootDir": "ts",
+
+        // Nothing in the browser bundle needs an ambient @types package, and auto-including every
+        // one found under node_modules pulls in @types/node and @types/requirejs together, which
+        // declare conflicting `Module` and `require` globals. The platform SDK typings come in
+        // explicitly through the triple-slash reference in ts/vss-sdk.d.ts instead.
+        "types": [],
+
+        "strict": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "noImplicitReturns": true,
+        "noFallthroughCasesInSwitch": true,
+        "forceConsistentCasingInFileNames": true,
+        "skipLibCheck": true,
+        "removeComments": false,
+        "sourceMap": true
+    },
+    "include": [ "ts/**/*.ts" ]
+}

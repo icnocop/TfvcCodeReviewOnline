@@ -1,0 +1,186 @@
+{
+    "_comment": [
+        "Synthetic response for GET _apis/discussion/threads?workItemId={id}&api-version=3.0-preview.1.",
+        "The content is invented; the shape reproduces what a real collection returns, because that",
+        "shape is what the parser has to survive:",
+        "  * the file path and line anchor live in `properties`, wrapped as { $type, $value }",
+        "  * a review-level thread has no properties at all",
+        "  * a file-level thread has ItemPath but no Position",
+        "  * a code-block-level thread has both, and PositionContext is RightBuffer or LeftBuffer",
+        "  * replies are expressed with `parentId`; root comments omit the field entirely",
+        "  * multi-line comment text arrives with real CRLF pairs",
+        "  * an author may be missing a displayName"
+    ],
+    "count": 5,
+    "value": [
+        {
+            "id": 4001,
+            "artifactUri": "vstfs:///VersionControl/Shelveset/SampleShelveset1%2526shelvesetOwner%253dEXAMPLE%25255csample.user1",
+            "publishedDate": "2026-04-07T09:15:00.123Z",
+            "lastUpdatedDate": "2026-04-07T09:15:00.123Z",
+            "status": "active",
+            "workItemId": 1234,
+            "comments": [
+                {
+                    "id": 1,
+                    "threadId": 4001,
+                    "author": {
+                        "displayName": "Sample User 1",
+                        "id": "00000000-0000-4000-8000-000000000001",
+                        "uniqueName": "sample.user1@example.com",
+                        "imageUrl": "https://tfs.example.com/DefaultCollection/_apis/GraphProfile/MemberAvatars/sample1"
+                    },
+                    "content": "Adds retry handling around the import step.",
+                    "publishedDate": "2026-04-07T09:15:00.123Z",
+                    "commentType": "text"
+                }
+            ]
+        },
+        {
+            "id": 4002,
+            "artifactUri": "vstfs:///VersionControl/Shelveset/SampleShelveset1%2526shelvesetOwner%253dEXAMPLE%25255csample.user1",
+            "publishedDate": "2026-04-07T10:02:11.500Z",
+            "lastUpdatedDate": "2026-04-07T10:02:11.500Z",
+            "status": "active",
+            "workItemId": 1234,
+            "properties": {
+                "Microsoft.TeamFoundation.Discussion.ItemPath": {
+                    "$type": "System.String",
+                    "$value": "$/ExampleProject/src/Sample1.csproj"
+                }
+            },
+            "comments": [
+                {
+                    "id": 1,
+                    "threadId": 4002,
+                    "author": {
+                        "displayName": "Sample User 2",
+                        "id": "00000000-0000-4000-8000-000000000002",
+                        "uniqueName": "sample.user2@example.com"
+                    },
+                    "content": "Is this package reference still needed?",
+                    "publishedDate": "2026-04-07T10:02:11.500Z",
+                    "commentType": "text"
+                }
+            ]
+        },
+        {
+            "id": 4003,
+            "artifactUri": "vstfs:///VersionControl/Shelveset/SampleShelveset1%2526shelvesetOwner%253dEXAMPLE%25255csample.user1",
+            "publishedDate": "2026-04-07T10:02:11.500Z",
+            "lastUpdatedDate": "2026-04-07T11:30:45.010Z",
+            "status": "active",
+            "workItemId": 1234,
+            "properties": {
+                "Microsoft.TeamFoundation.Discussion.ItemPath": {
+                    "$type": "System.String",
+                    "$value": "$/ExampleProject/src/Sample2.cs"
+                },
+                "Microsoft.TeamFoundation.Discussion.Position.StartLine": { "$type": "System.Int32", "$value": 117 },
+                "Microsoft.TeamFoundation.Discussion.Position.EndLine": { "$type": "System.Int32", "$value": 129 },
+                "Microsoft.TeamFoundation.Discussion.Position.StartColumn": { "$type": "System.Int32", "$value": 21 },
+                "Microsoft.TeamFoundation.Discussion.Position.EndColumn": { "$type": "System.Int32", "$value": 22 },
+                "Microsoft.TeamFoundation.Discussion.Position.StartCharPosition": { "$type": "System.Int32", "$value": 5416 },
+                "Microsoft.TeamFoundation.Discussion.Position.EndCharPosition": { "$type": "System.Int32", "$value": 6047 },
+                "Microsoft.TeamFoundation.Discussion.Position.PositionContext": { "$type": "System.String", "$value": "RightBuffer" }
+            },
+            "comments": [
+                {
+                    "id": 1,
+                    "threadId": 4003,
+                    "author": {
+                        "displayName": "Sample User 2",
+                        "id": "00000000-0000-4000-8000-000000000002",
+                        "uniqueName": "sample.user2@example.com"
+                    },
+                    "content": "Why would this fail, and why does the code keep going afterwards?\r\nIt looks like the error is swallowed here, so a later call would fail instead.",
+                    "publishedDate": "2026-04-07T10:02:11.500Z",
+                    "commentType": "text"
+                },
+                {
+                    "id": 2,
+                    "threadId": 4003,
+                    "parentId": 1,
+                    "author": {
+                        "displayName": "Sample User 1",
+                        "id": "00000000-0000-4000-8000-000000000001",
+                        "uniqueName": "sample.user1@example.com"
+                    },
+                    "content": "Good catch & agreed - the \"continue\" was deliberate but wrong.",
+                    "publishedDate": "2026-04-07T11:00:00.000Z",
+                    "commentType": "text"
+                },
+                {
+                    "id": 3,
+                    "threadId": 4003,
+                    "parentId": 2,
+                    "author": {
+                        "displayName": "Sample User 2",
+                        "id": "00000000-0000-4000-8000-000000000002",
+                        "uniqueName": "sample.user2@example.com"
+                    },
+                    "content": "Fixed in revision 3, thanks.",
+                    "publishedDate": "2026-04-07T11:30:45.010Z",
+                    "commentType": "text"
+                }
+            ]
+        },
+        {
+            "id": 4004,
+            "artifactUri": "vstfs:///VersionControl/Shelveset/SampleShelveset1%2526shelvesetOwner%253dEXAMPLE%25255csample.user1",
+            "publishedDate": "2026-04-07T10:04:00.000Z",
+            "lastUpdatedDate": "2026-04-07T10:04:00.000Z",
+            "status": "active",
+            "workItemId": 1234,
+            "properties": {
+                "Microsoft.TeamFoundation.Discussion.ItemPath": {
+                    "$type": "System.String",
+                    "$value": "$/ExampleProject/src/Sample2.cs"
+                },
+                "Microsoft.TeamFoundation.Discussion.Position.StartLine": { "$type": "System.Int32", "$value": 946 },
+                "Microsoft.TeamFoundation.Discussion.Position.EndLine": { "$type": "System.Int32", "$value": 946 },
+                "Microsoft.TeamFoundation.Discussion.Position.PositionContext": { "$type": "System.String", "$value": "LeftBuffer" }
+            },
+            "comments": [
+                {
+                    "id": 1,
+                    "threadId": 4004,
+                    "author": {
+                        "id": "00000000-0000-4000-8000-000000000003"
+                    },
+                    "content": "This line was removed - was that intentional?",
+                    "publishedDate": "2026-04-07T10:04:00.000Z",
+                    "commentType": "text"
+                }
+            ]
+        },
+        {
+            "id": 4005,
+            "artifactUri": "vstfs:///VersionControl/Shelveset/SampleShelveset1%2526shelvesetOwner%253dEXAMPLE%25255csample.user1",
+            "publishedDate": "2026-04-07T12:00:00.000Z",
+            "lastUpdatedDate": "2026-04-07T12:05:00.000Z",
+            "status": "closed",
+            "workItemId": 1234,
+            "properties": {
+                "Microsoft.TeamFoundation.Discussion.ItemPath": {
+                    "$type": "System.String",
+                    "$value": "$/ExampleProject/src/Sample3.cs"
+                }
+            },
+            "comments": [
+                {
+                    "id": 1,
+                    "threadId": 4005,
+                    "author": {
+                        "displayName": "Sample User 1",
+                        "id": "00000000-0000-4000-8000-000000000001"
+                    },
+                    "content": "Withdrawn.",
+                    "publishedDate": "2026-04-07T12:00:00.000Z",
+                    "isDeleted": true,
+                    "commentType": "text"
+                }
+            ]
+        }
+    ]
+}

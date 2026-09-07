@@ -1,0 +1,79 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.9.12112.369 stable
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{A68550A5-1896-4611-8BBE-DA3235FE21C7}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+		.gitattributes = .gitattributes
+		.gitignore = .gitignore
+		Directory.Build.props = Directory.Build.props
+		LICENSE = LICENSE
+		package-lock.json = package-lock.json
+		package.json = package.json
+		README.md = README.md
+		tsconfig.json = tsconfig.json
+		vitest.config.ts = vitest.config.ts
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{01BD59A4-8A87-4251-9252-FA1CB78F4F41}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\build.yml = .github\workflows\build.yml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{DC8F960B-323D-4121-ACD3-BE48005A0755}"
+	ProjectSection(SolutionItems) = preProject
+		docs\api-contract.md = docs\api-contract.md
+		docs\installing.md = docs\installing.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "scripts", "scripts", "{7F3D4225-60D1-4BCE-9392-5E29BE0C748B}"
+	ProjectSection(SolutionItems) = preProject
+		scripts\Export-CodeReviewComments.ps1 = scripts\Export-CodeReviewComments.ps1
+		scripts\Get-CodeReviewFixture.ps1 = scripts\Get-CodeReviewFixture.ps1
+		scripts\Remove-WorkItemFormExtension.ps1 = scripts\Remove-WorkItemFormExtension.ps1
+		scripts\Set-ExtensionFrameSameOrigin.ps1 = scripts\Set-ExtensionFrameSameOrigin.ps1
+		scripts\Test-DiscussionApiAuth.ps1 = scripts\Test-DiscussionApiAuth.ps1
+		scripts\Set-WorkItemFormExtension.ps1 = scripts\Set-WorkItemFormExtension.ps1
+		scripts\Test-NoEnvironmentLeaks.ps1 = scripts\Test-NoEnvironmentLeaks.ps1
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72D-47B6-A68D-7590B98EB39B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TfvcCodeReviewOnline.Web", "src\TfvcCodeReviewOnline.Web\TfvcCodeReviewOnline.Web.csproj", "{2A9479DF-AC57-47E9-A424-C82C99E7EED6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TfvcCodeReviewOnline.Vsix", "src\TfvcCodeReviewOnline.Vsix\TfvcCodeReviewOnline.Vsix.csproj", "{CAAED07D-49F7-482E-AA7A-A04591C29E4B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{43C197F0-0213-4594-8373-221C014EE65E}"
+EndProject
+Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "TfvcCodeReviewOnline.Tests", "tests\TfvcCodeReviewOnline.Tests\TfvcCodeReviewOnline.Tests.esproj", "{40E598FA-E2C0-4161-8A74-D423CF0673C5}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2A9479DF-AC57-47E9-A424-C82C99E7EED6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2A9479DF-AC57-47E9-A424-C82C99E7EED6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2A9479DF-AC57-47E9-A424-C82C99E7EED6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2A9479DF-AC57-47E9-A424-C82C99E7EED6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CAAED07D-49F7-482E-AA7A-A04591C29E4B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CAAED07D-49F7-482E-AA7A-A04591C29E4B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CAAED07D-49F7-482E-AA7A-A04591C29E4B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CAAED07D-49F7-482E-AA7A-A04591C29E4B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{40E598FA-E2C0-4161-8A74-D423CF0673C5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{40E598FA-E2C0-4161-8A74-D423CF0673C5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{40E598FA-E2C0-4161-8A74-D423CF0673C5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{40E598FA-E2C0-4161-8A74-D423CF0673C5}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{2A9479DF-AC57-47E9-A424-C82C99E7EED6} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{CAAED07D-49F7-482E-AA7A-A04591C29E4B} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{40E598FA-E2C0-4161-8A74-D423CF0673C5} = {43C197F0-0213-4594-8373-221C014EE65E}
+	EndGlobalSection
+EndGlobal

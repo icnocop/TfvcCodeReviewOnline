@@ -1,0 +1,24 @@
+# Normalize line endings to LF in the repository and check them out native, which is the convention
+# for a TypeScript/npm project and keeps diffs stable across platforms.
+* text=auto
+
+*.ts   text
+*.js   text
+*.json text
+*.html text
+*.css  text
+*.md   text
+*.yml  text
+*.xml  text
+
+# PowerShell is only run on Windows here, and CRLF avoids surprises with signed or here-string
+# heavy scripts.
+*.ps1 text eol=crlf
+
+# MSBuild project files are edited by Visual Studio, which writes CRLF.
+*.csproj    text eol=crlf
+*.props     text eol=crlf
+*.sln       text eol=crlf
+
+*.png binary
+*.vsix binary

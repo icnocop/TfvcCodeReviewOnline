@@ -1,0 +1,172 @@
+name: Build
+
+on:
+  push:
+    branches: [ dev ]
+  pull_request:
+    branches: [ dev ]
+  workflow_dispatch:
+    inputs:
+      prerelease:
+        description: 'Publish a private preview to the Visual Studio Marketplace and attach the package to a GitHub pre-release?'
+        required: true
+        default: 'false'
+      release:
+        description: 'Publish publicly to the Visual Studio Marketplace?'
+        required: true
+        default: 'false'
+      shareWith:
+        description: 'Comma-separated Azure DevOps organizations to share a private preview with.'
+        required: false
+        default: ''
+
+jobs:
+
+  build:
+
+    strategy:
+      matrix:
+        configuration: [Debug, Release]
+
+    runs-on: windows-latest
+
+    permissions:
+      contents: write
+
+    steps:
+    # An Azure DevOps extension version must be exactly three SemVer parts, so the four-part
+    # major.minor.build.run form used for assemblies is not valid here. The date encoding is kept
+    # and the run number folded into the patch, which keeps the value monotonic across days and
+    # years while guaranteeing that two builds on the same day never collide -- the Marketplace
+    # rejects republishing a version that already exists.
+    - name: Set version number
+      run: |
+        $majorVersion = 0
+        $minorVersion = 1
+        $firstBuildYear = 2026
+        $currentDate = (Get-Date).ToUniversalTime()
+        $buildYear = [Convert]::ToInt32($currentDate.ToString("yyyy"))
+        $currentMonthDay = [Convert]::ToInt32($currentDate.ToString("MMdd"))
+        $dateCode = (($buildYear - $firstBuildYear) * 1200) + $currentMonthDay
+        $runSuffix = [int]${{ github.run_number }} % 100
+        $patchVersion = ($dateCode * 100) + $runSuffix
+        echo "Current Date=$currentDate"
+        echo "VERSION=$majorVersion.$minorVersion.$patchVersion" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf-8 -Append
+
+    - name: Read environmental variables
+      run: |
+        echo VERSION=${{ env.VERSION }}
+        echo GITHUB_WORKSPACE=${{ github.WORKSPACE }}
+
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+
+    # Replaces the AssemblyInfo.cs and source.extension.vsixmanifest steps used for a Visual Studio
+    # extension: there is no C# here, and an Azure DevOps extension's manifest is vss-extension.json.
+    - name: Update vss-extension.json and package.json
+      run: |
+        $files = @(
+            "${{ github.WORKSPACE }}\src\TfvcCodeReviewOnline.Vsix\vss-extension.json",
+            "${{ github.WORKSPACE }}\package.json"
+        )
+        $updated = 0
+        foreach ($file in $files) {
+            if (-not (Test-Path -LiteralPath $file)) {
+                Write-Host "Didn't find '$file'."
+                continue
+            }
+            $json = Get-Content -LiteralPath $file -Raw | ConvertFrom-Json
+            $json.version = "${{ env.VERSION }}"
+            $json | ConvertTo-Json -Depth 32 | Set-Content -LiteralPath $file -Encoding utf8
+            Write-Host "Version applied to '$file'"
+            $updated++
+        }
+        if ($updated -ne $files.Count) {
+            Write-Host "Expected to update $($files.Count) file(s) but updated $updated."
+            exit 1
+        }
+
+    # This repository is public and much of what it does is talk to somebody's on-premises server,
+    # so every host, collection, project, and account name has to be a parameter rather than a
+    # literal. The check is pattern-based; a blocklist of real names would publish exactly what it
+    # was meant to protect.
+    - name: Check for environment references
+      run: .\scripts\Test-NoEnvironmentLeaks.ps1
+
+    - name: Install dependencies
+      run: npm ci
+
+    # Run as a visible step of its own so a failure is obvious in the Actions UI rather than buried
+    # in MSBuild output. The packaging project also gates on the tests, which is what protects a
+    # local build; RunTestsBeforePackaging is turned off below so they do not run twice.
+    - name: Test
+      run: npm test
+      env:
+        CI: 'true'
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results-${{ matrix.configuration }}
+        path: test-results/
+        if-no-files-found: ignore
+
+    - name: Build
+      run: >
+        dotnet build TfvcCodeReviewOnline.sln
+        -c ${{ matrix.configuration }}
+        /p:ExtensionVersion=${{ env.VERSION }}
+        /p:RunTestsBeforePackaging=false
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: TfvcCodeReviewOnline-${{ env.VERSION }} ${{ matrix.configuration }}
+        path: src/TfvcCodeReviewOnline.Vsix/bin/${{ matrix.configuration }}/*.vsix
+        if-no-files-found: error
+
+    # Open VSIX Gallery is deliberately not a target: vsixgallery.com distributes Visual Studio
+    # extensions, and an Azure DevOps extension cannot be installed into Azure DevOps from there. A
+    # GitHub pre-release asset fills the same role, and is also the natural channel for on-premises
+    # users, who install by uploading a .vsix to their server's local gallery.
+    - name: Publish pre-release to GitHub
+      if: ${{ matrix.configuration == 'Release' && github.event.inputs.prerelease == 'true' }}
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        $vsix = Get-ChildItem "src\TfvcCodeReviewOnline.Vsix\bin\${{ matrix.configuration }}\*.vsix" | Select-Object -First 1
+        if (-not $vsix) { Write-Host 'No .vsix was produced.'; exit 1 }
+        gh release create "v${{ env.VERSION }}" $vsix.FullName --prerelease --title "v${{ env.VERSION }}" --notes "Pre-release build ${{ env.VERSION }} from ${{ github.sha }}."
+
+    # tfx-cli is Microsoft's publisher for Azure DevOps extensions. VsixPublisher.exe (and the
+    # actions that wrap it) only handles Visual Studio extensions, so it is not usable here, and
+    # there is no publishManifest.json -- vss-extension.json is the publish manifest.
+    - name: Publish private preview to the Visual Studio Marketplace
+      if: ${{ matrix.configuration == 'Release' && github.event.inputs.prerelease == 'true' && github.event.inputs.shareWith != '' }}
+      env:
+        AZURE_DEVOPS_EXT_PAT: ${{ secrets.MARKETPLACE_PAT }}
+      run: |
+        $vsix = Get-ChildItem "src\TfvcCodeReviewOnline.Vsix\bin\${{ matrix.configuration }}\*.vsix" | Select-Object -First 1
+        if (-not $vsix) { Write-Host 'No .vsix was produced.'; exit 1 }
+        npx tfx extension publish --vsix $vsix.FullName --share-with ${{ github.event.inputs.shareWith }} --no-prompt --no-color
+
+    - name: Publish to the Visual Studio Marketplace
+      if: ${{ matrix.configuration == 'Release' && github.event.inputs.release == 'true' }}
+      env:
+        AZURE_DEVOPS_EXT_PAT: ${{ secrets.MARKETPLACE_PAT }}
+      run: |
+        $vsix = Get-ChildItem "src\TfvcCodeReviewOnline.Vsix\bin\${{ matrix.configuration }}\*.vsix" | Select-Object -First 1
+        if (-not $vsix) { Write-Host 'No .vsix was produced.'; exit 1 }
+        npx tfx extension publish --vsix $vsix.FullName --no-prompt --no-color
