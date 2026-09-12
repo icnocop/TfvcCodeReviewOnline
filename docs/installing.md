@@ -61,7 +61,7 @@ PageContribution'."*
 ```xml
 <WebLayout>
   <Extensions>
-    <Extension Id="icnocop.tfvc-code-review-online" />
+    <Extension Id="RamiAbughazaleh.tfvc-code-review-online" />
   </Extensions>
 
   <SystemControls>
@@ -72,7 +72,7 @@ PageContribution'."*
     ...
   </Page>
 
-  <PageContribution Id="icnocop.tfvc-code-review-online.code-review-comments" Label="Comments" />
+  <PageContribution Id="RamiAbughazaleh.tfvc-code-review-online.code-review-comments" Label="Comments" />
 </WebLayout>
 ```
 
@@ -236,7 +236,7 @@ A work item type definition that references an extension which is not installed 
 imported**. witadmin rejects it:
 
 ```
-VS403121: Extension(s) "icnocop.tfvc-code-review-online" does not exist, or has no work item form
+VS403121: Extension(s) "RamiAbughazaleh.tfvc-code-review-online" does not exist, or has no work item form
 contribution.
 ```
 

@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Removes this extension's tab from a work item type form, for on-premises XML process model
     collections.
@@ -65,7 +65,7 @@ param (
 
     [Parameter()]
     [ValidateNotNullOrEmpty()]
-    [string] $ExtensionId = 'icnocop.tfvc-code-review-online',
+    [string] $ExtensionId = 'RamiAbughazaleh.tfvc-code-review-online',
 
     [Parameter()]
     [ValidateNotNullOrEmpty()]

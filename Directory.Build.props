@@ -14,7 +14,7 @@
       Publisher that owns the extension in the Marketplace. Overridden on the command line when
       publishing under a different account.
     -->
-    <ExtensionPublisher Condition="'$(ExtensionPublisher)' == ''">icnocop</ExtensionPublisher>
+    <ExtensionPublisher Condition="'$(ExtensionPublisher)' == ''">RamiAbughazaleh</ExtensionPublisher>
 
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <WarningsNotAsErrors></WarningsNotAsErrors>
