@@ -3,7 +3,7 @@
     "id": "tfvc-code-review-online",
     "publisher": "RamiAbughazaleh",
     "version": "0.0.0",
-    "name": "TFVC Code Review Online",
+    "name": "Code Review Online",
     "description": "Read TFVC code review comments and replies in the Azure DevOps web UI, anchored to the code they refer to, instead of only in Visual Studio.",
     "public": false,
     "categories": [
