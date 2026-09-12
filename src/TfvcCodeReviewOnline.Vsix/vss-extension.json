@@ -5,7 +5,7 @@
     "version": "0.0.0",
     "name": "Code Review Online",
     "description": "Read TFVC code review comments and replies in the Azure DevOps web UI, anchored to the code they refer to, instead of only in Visual Studio.",
-    "public": false,
+    "public": true,
     "categories": [
         "Azure Boards"
     ],
