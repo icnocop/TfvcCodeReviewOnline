@@ -41,8 +41,8 @@ jobs:
     # rejects republishing a version that already exists.
     - name: Set version number
       run: |
-        $majorVersion = 0
-        $minorVersion = 1
+        $majorVersion = 1
+        $minorVersion = 0
         $firstBuildYear = 2026
         $currentDate = (Get-Date).ToUniversalTime()
         $buildYear = [Convert]::ToInt32($currentDate.ToString("yyyy"))
